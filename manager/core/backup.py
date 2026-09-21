@@ -78,6 +78,12 @@ def create_backup(include_ssl: bool = False, actor: str = "system") -> Path:
                 tar.add(item, arcname=item.name)
 
     archive_path.chmod(0o600)
+    # Same reasoning as restore_backup()'s chown calls: create_backup()
+    # can run as root (`ssh-ws` -> Backup, or update.sh's pre-update
+    # backup) as well as unprivileged (the web panel). A root-made,
+    # root-owned, mode-0600 archive would otherwise be invisible to the
+    # web panel's own download/restore routes, which run unprivileged.
+    paths.chown_to_service_user(archive_path)
     return archive_path
 
 
@@ -121,10 +127,17 @@ def restore_backup(archive_path: Path) -> dict:
         if restored_config.exists():
             paths.ETC_DIR.mkdir(parents=True, exist_ok=True)
             shutil.copy2(restored_config, paths.CONFIG_FILE)
+            # restore_backup() can run as root (the `ssh-ws` CLI, or
+            # update.sh's rollback path) as well as unprivileged (the web
+            # panel) -- shutil.copy2 never changes ownership, so a
+            # root-run restore would otherwise leave a root-owned
+            # config.json the always-unprivileged manager can't read.
+            paths.chown_to_service_user(paths.CONFIG_FILE)
 
         restored_db = stage / paths.DB_FILE.name
         if restored_db.exists():
             paths.VAR_DIR.mkdir(parents=True, exist_ok=True)
             shutil.copy2(restored_db, paths.DB_FILE)
+            paths.chown_to_service_user(paths.DB_FILE)
 
     return {"manifest": manifest, "safety_backup": str(safety_backup)}

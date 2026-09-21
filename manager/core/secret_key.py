@@ -39,12 +39,15 @@ def _atomic_create_if_missing(key_file) -> str:
         with os.fdopen(fd, "w", encoding="utf-8") as fh:
             fh.write(key)
         os.chmod(tmp_str, 0o600)
+        paths.chown_to_service_user(tmp_str)
         try:
             # Atomic "create key_file only if it doesn't already exist":
             # os.link fails with FileExistsError if a concurrent process
             # already won this race, and by the time it can succeed or
             # fail, tmp's content is already fully written and closed, so
             # there is no window where a reader could see a partial file.
+            # The link shares tmp's inode, so it also shares the ownership
+            # set above -- there is no separate chown-after-link needed.
             os.link(tmp_str, key_file)
             return key
         except FileExistsError:

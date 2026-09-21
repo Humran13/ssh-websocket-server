@@ -68,6 +68,14 @@ def save(cfg: dict[str, Any]) -> None:
             os.chmod(paths.CONFIG_FILE, 0o640)
         except OSError:
             pass
+        # save() can run as root (the installer, update.sh, or `ssh-ws`
+        # itself) as well as unprivileged (the web panel) -- a file root
+        # creates is root-owned regardless of who owns ETC_DIR, and the
+        # manager (always unprivileged) needs to read this back at every
+        # boot. Verified directly as the root cause of a real startup
+        # PermissionError once (for the sibling secret-key file; this
+        # file writes exactly the same way).
+        paths.chown_to_service_user(paths.CONFIG_FILE)
     finally:
         if os.path.exists(tmp_path):
             os.remove(tmp_path)

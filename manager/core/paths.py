@@ -66,3 +66,23 @@ def ensure_dirs() -> None:
     dirs = (__getattr__("ETC_DIR"), __getattr__("VAR_DIR"), __getattr__("LOG_DIR"), __getattr__("BACKUP_DIR"))
     for d in dirs:
         d.mkdir(parents=True, exist_ok=True)
+
+
+def chown_to_service_user(path) -> None:
+    """No-op unless running as root. A file root creates always defaults
+    to root:root ownership regardless of which user owns its parent
+    directory -- so any code path that writes into ETC_DIR/VAR_DIR while
+    running as root (the installer, `update.sh`, or `ssh-ws` itself, all
+    of which run as root) must call this afterward, or the manager
+    (always running as SERVICE_USER) will hit a PermissionError reading
+    it back. Verified directly: this is exactly the bug the first two
+    callers of this function were added to fix.
+    """
+    if not hasattr(os, "geteuid") or os.geteuid() != 0:
+        return
+    try:
+        import pwd
+        pw = pwd.getpwnam(__getattr__("SERVICE_USER"))
+        os.chown(str(path), pw.pw_uid, pw.pw_gid)
+    except (KeyError, ImportError, OSError):
+        pass  # service account not present yet (e.g. local dev) -- leave as-is

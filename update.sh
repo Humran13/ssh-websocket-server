@@ -35,6 +35,7 @@ rollback() {
     PYTHONPATH="$SSHWS_ROOT/manager" "$VENV_PY" -c \
         "from pathlib import Path; from core import backup; backup.restore_backup(Path('$BACKUP_PATH'))" || true
     "$VENV_PY" -m pip install -q -r "$SSHWS_ROOT/manager/requirements.txt" || true
+    chown -R sshws:sshws /etc/ssh-websocket-server /var/lib/ssh-websocket-server || true
     systemctl restart sshws-manager sshws-bridge nginx || true
     log_error "Rolled back. The pre-update backup is kept at: $BACKUP_PATH"
 }
@@ -81,6 +82,12 @@ systemctl daemon-reload
 
 log_step "Running database migrations (if any)"
 PYTHONPATH="$SSHWS_ROOT/manager" "$VENV_PY" -c "from core import db; db.init_db()"
+
+# Same reasoning as install.sh: this whole script runs as root, and any
+# file it just created or touched under these directories (e.g. a fresh
+# manager.db from the migration step above) would otherwise be root-owned
+# and unreadable by the sshws-owned services about to be restarted.
+chown -R sshws:sshws /etc/ssh-websocket-server /var/lib/ssh-websocket-server
 
 log_step "Restarting services"
 systemctl restart sshws-bridge sshws-manager

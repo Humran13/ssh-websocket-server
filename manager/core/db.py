@@ -85,6 +85,11 @@ def init_db() -> None:
         paths.DB_FILE.chmod(0o640)
     except OSError:
         pass
+    # init_db() can run as root (the installer, update.sh, or `ssh-ws`
+    # itself, e.g. on a fresh/deleted database) as well as unprivileged
+    # (the web panel's own first request) -- see config.py's save() for
+    # the same reasoning and the real bug this class of fix addresses.
+    paths.chown_to_service_user(paths.DB_FILE)
 
 
 @contextlib.contextmanager

@@ -356,6 +356,18 @@ echo "$CONFIGURE_OUTPUT" | jq -r \
     2>/dev/null || echo "$CONFIGURE_OUTPUT"
 unset ADMIN_PASSWORD
 
+# post_install_configure.py just ran as root and may have created new
+# files under these directories (config.json, the secret key, the
+# SQLite db, ...). A file root creates always defaults to root:root
+# ownership regardless of which user owns its parent directory, so even
+# though these directories were already chowned to the service account
+# above, anything newly created here still needs re-owning -- verified
+# directly: the manager (running as sshws) hit a PermissionError reading
+# a root-owned secret key file before this line was added. Recursive and
+# unconditional is deliberate: patching each file creator individually
+# proved easy to miss one; this can't miss any of them.
+chown -R "$SSHWS_SERVICE_USER":"$SSHWS_SERVICE_USER" /etc/ssh-websocket-server /var/lib/ssh-websocket-server
+
 log_step "Starting services"
 systemctl enable --now ssh >/dev/null 2>&1 || true
 systemctl enable --now nginx
