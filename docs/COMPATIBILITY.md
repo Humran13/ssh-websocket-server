@@ -5,29 +5,56 @@ container per version, runs the real `install.sh` inside it (not a
 simulation), and checks that sshd, Nginx, the WebSocket bridge, and the
 manager all actually come up and respond.
 
-This file is updated as part of the release process. See the "Verified"
-line for when the table below was last regenerated and against which
-commit.
+This file is updated as part of the release process.
+
+**Verified**: 2026-09-21, v0.1.0, against a full run of
+`tests/integration/run-matrix.sh` covering all five supported versions in
+one pass (amd64, via Docker Desktop on Windows). "Installer" = `install.sh`
+itself exited 0; "sshd"/"nginx"/"manager" = the corresponding systemd unit
+reached `active`; "ws endpoint" = a real WebSocket handshake against
+`/ssh` on port 80 returned `101 Switching Protocols`, not just "port is
+open"; "firewall enable" = `ufw status` reported `active` after install
+(see the footnote and the limitations below for why this one is not
+reliably testable in this sandbox).
 
 <!-- SSHWS-COMPAT-TABLE-START -->
-_Not yet generated in this checkout -- run `bash tests/integration/run-matrix.sh` and paste the resulting table here._
+| OS | Installer | sshd | nginx | ws endpoint | manager | firewall enable* |
+|----|-----------|------|-------|-------------|---------|-------------------|
+| Ubuntu 18.04 | yes | yes | yes | yes | yes | no (sandbox limitation, see below) |
+| Ubuntu 20.04 | yes | yes | yes | yes | yes | no (sandbox limitation, see below) |
+| Ubuntu 22.04 | yes | yes | yes | yes | yes | yes |
+| Ubuntu 24.04 | yes | yes | yes | yes | yes | yes |
+| Ubuntu 26.04 | yes | yes | yes | yes | yes | yes |
+
+\* See "known, researched limitations" below -- `firewall enable`'s
+result is determined by whether the shared Docker Desktop VM kernel had
+already loaded its `ip6_tables` module from an earlier container in the
+same session, not by anything `install.sh` does differently per Ubuntu
+version. `ufw allow` (the rule-syncing half of firewall setup, run before
+`enable` regardless of outcome) succeeded on every version, every run.
 <!-- SSHWS-COMPAT-TABLE-END -->
 
 ## Known, researched limitations
 
-- **`ufw enable` cannot be verified inside the Docker-based test
-  sandbox**, on every Ubuntu version tested. Root cause (verified by
-  reproducing it directly, not assumed): `ufw --force enable` fails with
-  `ip6tables v1.8.4 (legacy): can't initialize ip6tables table 'filter':
-  Table does not exist (do you need to insmod?)` -- the `ip6_tables`
-  kernel module is not available inside this container runtime. This is
-  an artifact of the Docker sandbox's kernel, not of `install.sh`'s logic:
-  `ufw allow` (the rule-syncing half of firewall setup) works correctly
-  and *is* exercised by every matrix run; only the final `enable` call is
-  unverifiable here. `install.sh` and the privileged helper handle the
-  failure exactly as designed either way -- reported clearly, install
-  continues rather than aborting (a non-critical subsystem failing must
-  not block the rest of setup). **This specifically needs verification on
+- **`ufw enable` cannot be reliably verified inside the Docker-based test
+  sandbox.** Root cause (verified by reproducing it directly, not
+  assumed): `ufw --force enable` fails with `ip6tables v1.8.4 (legacy):
+  can't initialize ip6tables table 'filter': Table does not exist (do you
+  need to insmod?)` when the `ip6_tables` kernel module hasn't been
+  loaded into the shared Docker Desktop VM kernel yet. Because that
+  kernel (and its loaded-module state) is shared across every container
+  in the same Docker Desktop session, the result is order-dependent, not
+  deterministic per Ubuntu version -- in the run this table was generated
+  from, it failed on the first two versions tested (18.04, 20.04) and
+  succeeded on the next three (22.04, 24.04, 26.04), with no code
+  difference between them. This is an artifact of the Docker sandbox's
+  kernel, not of `install.sh`'s logic: `ufw allow` (the rule-syncing half
+  of firewall setup) worked correctly on every version, every run; only
+  the final `enable` call is affected. `install.sh` and the privileged
+  helper handle the failure exactly as designed either way -- reported
+  clearly, install continues rather than aborting (a non-critical
+  subsystem failing must not block the rest of setup). **This specifically
+  needs verification on
   a real VPS**, where a real kernel's `ip6tables` support is expected to
   work normally. The installer was deliberately *not* changed to disable
   IPv6 filtering (`IPV6=no` in `/etc/default/ufw`) to make this sandbox
@@ -35,17 +62,27 @@ _Not yet generated in this checkout -- run `bash tests/integration/run-matrix.sh
   firewalls just to make a test pass, which is exactly the kind of
   fabricated-pass this document is meant to avoid.
 
-- **Ubuntu 18.04 (bionic)** is past standard Ubuntu support. Its default
-  apt archives are frozen at their EOL state; without an Ubuntu Pro ESM
-  subscription, some packages (particularly `certbot` and
-  `python3-certbot-nginx`, which see frequent security-relevant updates)
-  may be outdated, missing, or fail to install outright. `install.sh`
-  detects this, warns explicitly, and continues installing whatever it
-  can rather than silently pretending everything succeeded -- check the
-  installer's summary output and `/var/log/ssh-websocket-server/install.log`
-  for exactly what did and did not install on a given 18.04 host. IP/WS
-  mode (no TLS) is the most likely to work reliably; domain+WSS mode is
-  the most likely to be affected.
+- **Ubuntu 18.04 (bionic)'s default `python3` (3.6.9) cannot run this
+  project's manager/CLI at all** -- not a version-drift inconvenience, a
+  hard block: every `manager/core/*.py` module uses `from __future__
+  import annotations` (PEP 563), which is a `SyntaxError` on Python < 3.7,
+  and the pinned Flask/Werkzeug versions additionally require >= 3.8.
+  Verified directly by installing Ubuntu 18.04's own `python3` package in
+  a clean container and reproducing the failure, not assumed from
+  version numbers alone. **Fix, verified working end-to-end**: Ubuntu
+  18.04's own official archive (no third-party PPA) also carries
+  `python3.8` + `python3.8-venv` + `python3.8-dev` +
+  `python3.8-distutils` (the last of which turned out to be required too
+  -- `python3.8-venv` alone fails with "ensurepip is not available"
+  without it, also verified by reproducing it). `install.sh` now detects
+  a system `python3` older than 3.8 and installs `python3.8` from this
+  same official archive for the venv specifically, leaving the system's
+  own default `python3` (and anything else that depends on it) untouched.
+  18.04's apt archives are also past standard EOL and frozen at that
+  state; without Ubuntu Pro ESM, `certbot`/`python3-certbot-nginx` in
+  particular may still be outdated or fail to install even once the
+  Python version problem is solved -- `install.sh` reports exactly what
+  did and did not install rather than silently claiming full success.
 - **arm64** is supported using the same package names and code paths as
   amd64 (every dependency here -- Python, Nginx, OpenSSH, websockify,
   certbot -- publishes arm64 builds/packages), but receives less testing

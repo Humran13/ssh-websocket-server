@@ -229,9 +229,32 @@ chmod 700 /etc/ssh-websocket-server /var/lib/ssh-websocket-server /var/log/ssh-w
 log_ok "Files installed."
 
 log_step "Setting up Python virtual environment"
+# manager/core/*.py uses `from __future__ import annotations` (PEP 563),
+# which requires Python >= 3.7 to even parse, and this project's pinned
+# Flask/Werkzeug versions require >= 3.8. Ubuntu 18.04's default `python3`
+# is 3.6 -- too old either way. Rather than silently fail deep into the
+# install, or add a third-party PPA, Ubuntu 18.04's own official archive
+# already carries a usable python3.8 (+ -venv/-dev/-distutils) package;
+# use that instead of the system default when it's too old. Verified
+# directly (not assumed): `python3.8-venv` alone is not sufficient on
+# 18.04 -- ensurepip fails without `python3.8-distutils` also installed.
+PYTHON_BIN="python3"
+if ! python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 8) else 1)' 2>/dev/null; then
+    log_warn "System python3 ($(python3 --version 2>&1)) is older than the 3.8 this project" \
+             "requires. Installing python3.8 from Ubuntu's own archive for the venv only" \
+             "(the system python3 / any other software using it is left untouched)."
+    if apt-get install -y -qq python3.8 python3.8-venv python3.8-dev python3.8-distutils; then
+        PYTHON_BIN="python3.8"
+    else
+        die "python3 is too old ($(python3 --version 2>&1)) and python3.8 is not available" \
+            "from this system's package archive. This Ubuntu release cannot run the manager/CLI;" \
+            "see docs/COMPATIBILITY.md."
+    fi
+fi
+
 VENV_DIR="$SSHWS_ROOT/venv"
 if [[ ! -d "$VENV_DIR" ]]; then
-    python3 -m venv "$VENV_DIR"
+    "$PYTHON_BIN" -m venv "$VENV_DIR"
 fi
 VENV_PY="$VENV_DIR/bin/python3"
 "$VENV_PY" -m pip install -q --upgrade pip

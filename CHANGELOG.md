@@ -41,19 +41,64 @@ Initial release.
   rollback on failure.
 - `uninstall.sh` / `ssh-ws uninstall`: explicit, itemized removal that
   never touches unrelated Nginx sites or unmanaged SSH accounts.
-- 94 automated unit tests (pytest) covering config/port/domain/path
+- 104 automated unit tests (pytest) covering config/port/domain/path
   validation, user lifecycle and safety rules, auth/password handling,
   Nginx rendering, backup/restore (including a path-traversal regression
   test), domain/WSS state transitions, firewall allow-before-enable
-  ordering, and log redaction. `shellcheck` and `ruff` both clean.
+  ordering, log redaction, and the session-secret-key generation race
+  (verified with a real multi-threaded test). `shellcheck` and `ruff`
+  both clean.
 - Docker-based integration test harness
   (`tests/integration/run-matrix.sh`) that runs the real installer inside
   a systemd-capable container per supported Ubuntu version and verifies
   sshd/Nginx/WebSocket-handshake/manager all come up; results in
   `docs/COMPATIBILITY.md`.
 
+### Fixed during pre-release testing
+Found and fixed via the Docker-based integration matrix and a subsequent
+security-focused code review -- kept here rather than silently folded in,
+per this project's own "document limitations/findings" standard:
+- `/etc/ssh-websocket-server` etc. were root:sshws group-readable (0750),
+  not writable by the service account that needs to create its own
+  secret key/config/db there -- the manager crashed on first boot.
+- Nginx site writes only worked at install time (root context); any
+  post-install WS/domain change from the always-unprivileged manager
+  would have hit the same permission wall. Now goes through a dedicated
+  privileged-helper action.
+- Stock-vs-customized Nginx default-site detection matched page content
+  in `/var/www/html` instead of the config file itself, so it never
+  actually detected the stock site and left it enabled, breaking IP-mode
+  installs.
+- The panel's CSP (`script-src 'self'`) silently blocked the inline
+  `onsubmit="confirm(...)"` handlers used for delete/restore/disconnect
+  confirmations -- those actions fired immediately with no prompt.
+  Replaced with an external script.
+- gunicorn's multiple worker processes could race generating the Flask
+  session secret key on first boot, leaving two workers with two
+  different keys and silently invalidating each other's sessions. Fixed
+  with an atomic create-once helper, pre-created by the installer before
+  any worker starts.
+- `certbot`'s subprocess timeout (30s) was too tight for real Let's
+  Encrypt network round trips.
+- Ubuntu 18.04's default `python3` (3.6) cannot even parse this
+  project's own code (`from __future__ import annotations` requires
+  3.7+), let alone run the pinned Flask version (requires 3.8+).
+  `install.sh` now installs `python3.8` from Ubuntu's own official
+  archive for the venv specifically when the system Python is too old --
+  verified end-to-end, not assumed.
+- A backup-filename collision (same-second timestamps, no other entropy)
+  could let a restore's own automatic safety-backup step silently
+  overwrite the archive being restored from.
+
 ### Known limitations
 - Not yet tested against a real cloud VPS (see README "Known limitations").
 - Per-user bandwidth accounting intentionally not implemented (would
   require a fragile/misleading approach); documented as a future feature.
-- Ubuntu 18.04 package availability is constrained by its EOL status.
+- UFW's `enable` step cannot be verified inside the Docker-based test
+  sandbox (a missing `ip6_tables` kernel module in that specific
+  container runtime, not an installer defect -- see
+  `docs/COMPATIBILITY.md`); needs real-VPS verification.
+- Ubuntu 18.04's apt archives are past standard EOL and frozen at that
+  state; `certbot`/`python3-certbot-nginx` in particular may still be
+  outdated or unavailable there without Ubuntu Pro ESM, independent of
+  the Python-version fix above.

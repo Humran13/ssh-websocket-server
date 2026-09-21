@@ -50,9 +50,11 @@ os_check_supported() {
         fi
     fi
     if [[ "$SSHWS_OS_VERSION" == "18.04" ]]; then
-        log_warn "Ubuntu 18.04 is past standard EOL. Some packages (notably certbot) may be" \
-                 "outdated or unavailable on the default archives without Ubuntu Pro ESM."
-        log_warn "The installer will continue and report exactly what could and could not be installed."
+        log_warn "Ubuntu 18.04 is past standard EOL. Its default python3 (3.6) is too old for" \
+                 "this project's manager/CLI; a python3.8 package will be installed from this" \
+                 "system's own archive for the venv only (see docs/COMPATIBILITY.md). Some other" \
+                 "packages (notably certbot) may still be outdated or unavailable without" \
+                 "Ubuntu Pro ESM -- the installer will report exactly what did and did not install."
     fi
 }
 

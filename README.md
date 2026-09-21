@@ -190,9 +190,10 @@ SSH WebSocket Server Manager
 See [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) for the generated,
 per-version results (installer, sshd, Nginx, WebSocket handshake, and
 manager, each independently checked) and known limitations. Unit tests
-(94 tests covering config/validation/user-lifecycle/backup-restore/
-domain/firewall/logging business logic), `shellcheck` (0 findings across
-every shell script), and `ruff` (0 findings) all run in CI
+(104 tests covering config/validation/user-lifecycle/backup-restore/
+domain/firewall/logging/session-key-generation business logic),
+`shellcheck` (0 findings across every shell script), and `ruff`
+(0 findings) all run in CI
 (`.github/workflows/ci.yml`) and locally via:
 
 ```bash
@@ -215,8 +216,19 @@ bash tests/integration/run-matrix.sh   # full Ubuntu matrix, needs Docker
   with misleading numbers, the dashboard shows real, accurate data
   instead: active sessions, source IP, login time, and duration. Bandwidth
   accounting is a candidate future feature, not a silently-broken one.
-- **Ubuntu 18.04** package availability is constrained by its EOL status;
-  see [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
+- **Ubuntu 18.04**: its default `python3` (3.6) is too old to run this
+  project's manager/CLI at all; `install.sh` detects this and installs
+  `python3.8` from Ubuntu's own official archive for the venv
+  specifically (verified working end-to-end, not just assumed). Its apt
+  archives are also past standard EOL and frozen at that state, so
+  `certbot`/`python3-certbot-nginx` in particular may still be outdated
+  or unavailable there without Ubuntu Pro ESM. See
+  [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
+- **UFW's `enable` step** could not be verified inside this project's own
+  Docker-based test sandbox specifically (a missing kernel module in that
+  container runtime -- `ufw allow`, the rule-syncing half, works and is
+  tested); needs verification on a real VPS kernel. See
+  [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md).
 - **arm64** is supported the same way as amd64 but has had less testing.
 
 ## Project structure
