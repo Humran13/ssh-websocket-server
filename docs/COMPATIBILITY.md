@@ -15,6 +15,26 @@ _Not yet generated in this checkout -- run `bash tests/integration/run-matrix.sh
 
 ## Known, researched limitations
 
+- **`ufw enable` cannot be verified inside the Docker-based test
+  sandbox**, on every Ubuntu version tested. Root cause (verified by
+  reproducing it directly, not assumed): `ufw --force enable` fails with
+  `ip6tables v1.8.4 (legacy): can't initialize ip6tables table 'filter':
+  Table does not exist (do you need to insmod?)` -- the `ip6_tables`
+  kernel module is not available inside this container runtime. This is
+  an artifact of the Docker sandbox's kernel, not of `install.sh`'s logic:
+  `ufw allow` (the rule-syncing half of firewall setup) works correctly
+  and *is* exercised by every matrix run; only the final `enable` call is
+  unverifiable here. `install.sh` and the privileged helper handle the
+  failure exactly as designed either way -- reported clearly, install
+  continues rather than aborting (a non-critical subsystem failing must
+  not block the rest of setup). **This specifically needs verification on
+  a real VPS**, where a real kernel's `ip6tables` support is expected to
+  work normally. The installer was deliberately *not* changed to disable
+  IPv6 filtering (`IPV6=no` in `/etc/default/ufw`) to make this sandbox
+  limitation disappear -- that would silently weaken real deployments'
+  firewalls just to make a test pass, which is exactly the kind of
+  fabricated-pass this document is meant to avoid.
+
 - **Ubuntu 18.04 (bionic)** is past standard Ubuntu support. Its default
   apt archives are frozen at their EOL state; without an Ubuntu Pro ESM
   subscription, some packages (particularly `certbot` and

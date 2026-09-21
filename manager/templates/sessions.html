@@ -15,7 +15,7 @@
       <td data-label="PID" class="mono">{{ s.pid }}</td>
       <td data-label="Action">
         <form method="post" action="{{ url_for('users.disconnect', username=s.username, pid=s.pid) }}"
-              onsubmit="return confirm('Disconnect this session?');">
+              data-confirm="Disconnect this session?">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <button type="submit" class="danger">Disconnect</button>
         </form>

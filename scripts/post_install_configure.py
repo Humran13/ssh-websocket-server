@@ -15,7 +15,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "manager"))
 
-from core import auth, config as config_mod, db, domain, firewall, health, network, privileged  # noqa: E402
+from core import auth, config as config_mod, db, domain, firewall, health, network, privileged, secret_key  # noqa: E402,E501
 
 
 def main() -> int:
@@ -67,6 +67,15 @@ def main() -> int:
         db.init_db()
         return "database initialized"
     step("init_db", do_init_db)
+
+    def do_secret_key():
+        # Created here, once, as a single process, specifically so that
+        # gunicorn's multiple worker processes (see systemd/sshws-manager
+        # .service: `-w 2`) never race to generate it independently --
+        # see core/secret_key.py for why that race matters.
+        secret_key.ensure()
+        return "session secret key ready"
+    step("secret_key", do_secret_key)
 
     if args.admin_username and args.admin_password:
         def do_create_admin():

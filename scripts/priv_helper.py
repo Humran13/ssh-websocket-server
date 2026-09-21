@@ -52,7 +52,8 @@ class HelperError(Exception):
     pass
 
 
-def run(cmd: list[str], input_text: str | None = None, check: bool = True) -> subprocess.CompletedProcess:
+def run(cmd: list[str], input_text: str | None = None, check: bool = True,
+        timeout: int = 30) -> subprocess.CompletedProcess:
     if not isinstance(cmd, list) or not cmd or not all(isinstance(c, str) for c in cmd):
         raise HelperError("internal error: command must be a list of strings")
     return subprocess.run(
@@ -62,7 +63,7 @@ def run(cmd: list[str], input_text: str | None = None, check: bool = True) -> su
         text=True,
         check=check,
         shell=False,
-        timeout=30,
+        timeout=timeout,
     )
 
 
@@ -344,12 +345,15 @@ def action_certbot_issue(args: dict) -> dict:
         cmd += ["-m", email]
     else:
         cmd += ["--register-unsafely-without-email"]
-    result = run(cmd, check=False)
+    # certbot talks to Let's Encrypt over the network (domain validation,
+    # certificate issuance); 30s is comfortably enough for most local
+    # commands here but has been observed to be too tight for this one.
+    result = run(cmd, check=False, timeout=180)
     return {"ok": result.returncode == 0, "output": (result.stdout + result.stderr).strip()}
 
 
 def action_certbot_renew(_args: dict) -> dict:
-    result = run(["certbot", "renew", "--non-interactive"], check=False)
+    result = run(["certbot", "renew", "--non-interactive"], check=False, timeout=180)
     return {"ok": result.returncode == 0, "output": (result.stdout + result.stderr).strip()}
 
 

@@ -21,7 +21,7 @@
         <td data-label="Actions">
           <a class="btn" href="{{ url_for('ops.backup_download', name=b.name) }}">Download</a>
           <form method="post" action="{{ url_for('ops.backup_restore', name=b.name) }}" style="display:inline"
-                onsubmit="return confirm('Restore from {{ b.name }}? A safety backup of the current state will be taken first.');">
+                data-confirm="Restore from {{ b.name }}? A safety backup of the current state will be taken first.">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="danger">Restore</button>
           </form>

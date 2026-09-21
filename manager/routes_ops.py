@@ -77,4 +77,7 @@ def restart_service(name):
         flash(f"Service '{name}' restarted.", "success")
     except privileged.PrivilegedActionError as exc:
         flash(str(exc), "error")
-    return redirect(request.referrer or url_for("dashboard.index"))
+    # Always redirect to a fixed, known page rather than trusting the
+    # Referer header -- a redirect target should never be attacker/
+    # browser-controlled input, however low-risk that seems here.
+    return redirect(url_for("dashboard.index"))

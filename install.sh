@@ -328,8 +328,9 @@ fi
 CONFIGURE_OUTPUT="$("$VENV_PY" "$SSHWS_ROOT/scripts/post_install_configure.py" "${CONFIGURE_ARGS[@]}")" \
     || log_warn "post-install configuration reported problems -- see details below."
 echo "$CONFIGURE_OUTPUT" | tee -a "$SSHWS_LOG_FILE" >/dev/null
-echo "$CONFIGURE_OUTPUT" | jq -r '.steps[] | "  " + (if .ok then "[OK]  " else "[FAIL]" end) + " " + .name' 2>/dev/null \
-    || echo "$CONFIGURE_OUTPUT"
+echo "$CONFIGURE_OUTPUT" | jq -r \
+    '.steps[] | "  " + (if .ok then "[OK]  " else "[FAIL]" end) + " " + .name + (if .ok then "" else ": " + (.detail | tostring) end)' \
+    2>/dev/null || echo "$CONFIGURE_OUTPUT"
 unset ADMIN_PASSWORD
 
 log_step "Starting services"

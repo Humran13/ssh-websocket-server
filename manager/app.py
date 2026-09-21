@@ -14,31 +14,16 @@ Security posture (see docs/SECURITY.md for the full review):
 from __future__ import annotations
 
 import os
-import secrets
 
 from flask import Flask, redirect, session, url_for
 from flask_wtf import CSRFProtect
 
-from core import db, paths
-
-
-def _load_or_create_secret_key() -> str:
-    key_file = paths.ETC_DIR / "secret_key"
-    if key_file.exists():
-        return key_file.read_text(encoding="utf-8").strip()
-    paths.ETC_DIR.mkdir(parents=True, exist_ok=True)
-    key = secrets.token_hex(32)
-    key_file.write_text(key, encoding="utf-8")
-    try:
-        os.chmod(key_file, 0o600)
-    except OSError:
-        pass
-    return key
+from core import db, secret_key
 
 
 def create_app(testing: bool = False) -> Flask:
     app = Flask(__name__)
-    app.config["SECRET_KEY"] = "test-only-key" if testing else _load_or_create_secret_key()
+    app.config["SECRET_KEY"] = "test-only-key" if testing else secret_key.ensure()
     app.config["SESSION_COOKIE_HTTPONLY"] = True
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
     force_secure = os.environ.get("SSHWS_FORCE_SECURE_COOKIE", "1") == "1"
@@ -80,7 +65,9 @@ def create_app(testing: bool = False) -> Flask:
         resp.headers["X-Content-Type-Options"] = "nosniff"
         resp.headers["X-Frame-Options"] = "DENY"
         resp.headers["Referrer-Policy"] = "same-origin"
-        resp.headers["Content-Security-Policy"] = "default-src 'self'; style-src 'self' 'unsafe-inline'"
+        resp.headers["Content-Security-Policy"] = (
+            "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'"
+        )
         return resp
 
     @app.route("/")

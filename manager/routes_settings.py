@@ -59,7 +59,7 @@ def domain_settings():
                 flash("Certificate issued and WSS enabled.", "success")
             elif form == "renew_cert":
                 from core import privileged
-                result = privileged.call("certbot_renew", {})
+                result = privileged.call("certbot_renew", {}, timeout=200)
                 flash("Renewal run: " + (result.get("output") or "ok"), "success")
         except (domain.DomainError, config_mod.ConfigError) as exc:
             flash(str(exc), "error")

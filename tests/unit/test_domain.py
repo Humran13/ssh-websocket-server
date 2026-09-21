@@ -18,6 +18,27 @@ def _fake_privileged(monkeypatch):
     monkeypatch.setattr(domain.privileged, "call", fake_call)
 
 
+def test_issue_certificate_uses_extended_timeout(monkeypatch):
+    # priv_helper.py itself gives certbot up to 180s internally (network
+    # round trips to Let's Encrypt); the default 40s here would otherwise
+    # kill the sudo-wrapped process -- and therefore certbot -- well
+    # before that inner timeout could ever matter.
+    calls = []
+
+    def fake_call(action, args=None, timeout=40):
+        calls.append((action, timeout))
+        if action == "nginx_test":
+            return {"ok": True, "output": "ok"}
+        return {"ok": True}
+
+    monkeypatch.setattr(domain.privileged, "call", fake_call)
+    domain.set_domain("vpn.example.com", actor="admin")
+    domain.issue_certificate(None, actor="admin")
+
+    issue_calls = [t for a, t in calls if a == "certbot_issue"]
+    assert issue_calls == [200]
+
+
 def test_dns_check_invalid_domain_raises():
     with pytest.raises(config_mod.ConfigError):
         domain.dns_check("not a domain")

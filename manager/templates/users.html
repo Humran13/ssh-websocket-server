@@ -40,7 +40,7 @@
           <button type="submit">Extend (days)</button>
         </form>
         <form method="post" action="{{ url_for('users.delete', username=u.username) }}" style="display:inline"
-              onsubmit="return confirm('Type-confirm required. Delete {{ u.username }}?');">
+              data-confirm="Delete '{{ u.username }}'? This cannot be undone.">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
           <input type="hidden" name="confirm_username" value="{{ u.username }}">
           <button type="submit" class="danger">Delete</button>

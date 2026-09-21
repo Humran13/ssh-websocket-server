@@ -70,6 +70,20 @@ def test_domain_mode_requires_domain():
         config_mod.validate(cfg)
 
 
+def test_manager_path_is_validated():
+    cfg = config_mod.load()
+    cfg["manager_path"] = "/panel; rm -rf /"
+    with pytest.raises(config_mod.ConfigError):
+        config_mod.validate(cfg)
+
+
+def test_ws_path_cannot_collide_with_manager_path():
+    cfg = config_mod.load()
+    cfg["ws_paths"] = ["/panel"]
+    with pytest.raises(config_mod.ConfigError, match="conflicts with the manager panel path"):
+        config_mod.validate(cfg)
+
+
 def test_no_config_file_returns_defaults(tmp_path):
     assert not (tmp_path / "etc" / "config.json").exists()
     cfg = config_mod.load()

@@ -11,7 +11,8 @@
     <button type="submit">Sync rules with current configuration</button>
   </form>
   {% if not status.active %}
-  <form method="post" style="display:inline" onsubmit="return confirm('This allows the current SSH/WS/WSS/manager ports first, then enables UFW. Continue?');">
+  <form method="post" style="display:inline"
+        data-confirm="This allows the current SSH/WS/WSS/manager ports first, then enables UFW. Continue?">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="action" value="enable">
     <button type="submit" class="primary">Enable firewall</button>

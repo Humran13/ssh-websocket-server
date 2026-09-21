@@ -81,11 +81,6 @@ def validate(cfg: dict[str, Any]) -> None:
     for key in ("ssh_port", "ws_port", "wss_port", "bridge_port", "manager_port"):
         _validate_port(key, cfg[key])
 
-    ports = {cfg["ssh_port"], cfg["bridge_port"], cfg["manager_port"]}
-    if cfg["ws_enabled"]:
-        ports.add(cfg["ws_port"])
-    if cfg["wss_enabled"]:
-        ports.add(cfg["wss_port"])
     all_ports = [cfg["ssh_port"], cfg["bridge_port"], cfg["manager_port"]]
     if cfg["ws_enabled"]:
         all_ports.append(cfg["ws_port"])
@@ -99,6 +94,15 @@ def validate(cfg: dict[str, Any]) -> None:
         raise ConfigError("at least one WebSocket path is required")
     for p in cfg["ws_paths"]:
         validate_ws_path(p)
+        if p.rstrip("/") == cfg["manager_path"].rstrip("/"):
+            raise ConfigError(f"WebSocket path {p!r} conflicts with the manager panel path")
+
+    # Not currently changeable through any UI/CLI action, but validated
+    # for the same reason every other field here is: it is interpolated
+    # directly into the generated Nginx config (network.py), so it must
+    # never be allowed to hold anything that isn't a safe URL path
+    # segment even if a future feature exposes it for editing.
+    validate_ws_path(cfg["manager_path"])
 
     if cfg["install_mode"] not in ("ip", "domain"):
         raise ConfigError("install_mode must be 'ip' or 'domain'")

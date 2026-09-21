@@ -88,4 +88,17 @@
     <tr><td>Active sessions (managed users)</td><td class="mono">{{ active_sessions | length }}</td></tr>
   </table>
 </div>
+
+<h2>Restart services</h2>
+<div class="card">
+  {% for svc in ["nginx", "sshws-bridge", "sshws-manager"] %}
+  <form method="post" action="{{ url_for('ops.restart_service', name=svc) }}" style="display:inline"
+        data-confirm="Restart {{ svc }}?">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit">Restart {{ svc }}</button>
+  </form>
+  {% endfor %}
+  <p class="muted">sshd is intentionally not restartable from here (accidentally
+    restarting it could interrupt your own session before you can retry over ws://).</p>
+</div>
 {% endblock %}

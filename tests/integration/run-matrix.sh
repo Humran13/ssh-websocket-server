@@ -44,7 +44,7 @@ run_one() {
     if ! docker build -q --build-arg "UBUNTU_VERSION=$version" \
             -t "$image" -f "${REPO_ROOT_HOST}\\tests\\integration\\Dockerfile" "$REPO_ROOT_HOST" \
             >"/tmp/build-$version.log" 2>&1; then
-        echo "$version|BUILD_FAILED|no|no|no|no|no|Base image build failed, see /tmp/build-$version.log" >> "$RESULTS_FILE"
+        echo "$version|BUILD_FAILED|no|no|no|no|no|Base image build failed, see /tmp/build-$version.log|" >> "$RESULTS_FILE"
         return
     fi
 
@@ -57,7 +57,7 @@ run_one() {
             -v "${REPO_ROOT_HOST}:/repo:ro" \
             -v "sshws-pip-cache:/root/.cache/pip" \
             "$image" >/dev/null; then
-        echo "$version|CONTAINER_START_FAILED|no|no|no|no|no|Could not start systemd container" >> "$RESULTS_FILE"
+        echo "$version|CONTAINER_START_FAILED|no|no|no|no|no|Could not start systemd container|" >> "$RESULTS_FILE"
         return
     fi
 
@@ -85,7 +85,21 @@ run_one() {
     docker exec "$container" nginx -t >/dev/null 2>&1 && \
         docker exec "$container" bash -c 'curl -s -o /dev/null -w "%{http_code}" -H "Connection: Upgrade" -H "Upgrade: websocket" -H "Sec-WebSocket-Version: 13" -H "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==" http://127.0.0.1:80/ssh' 2>/dev/null | grep -q 101 && ws_ok="yes"
 
-    echo "$version|$installer_ok|$sshd_ok|$nginx_ok|$ws_ok|$manager_ok|see /tmp/install-$version.log|$notes" >> "$RESULTS_FILE"
+    # UFW's `enable` step reliably fails inside this Docker sandbox
+    # specifically (verified root cause: ip6tables can't initialize --
+    # "Table does not exist (do you need to insmod?)" -- a missing kernel
+    # module in the container runtime, not something install.sh can fix
+    # or should work around by weakening IPv6 filtering). `ufw allow`
+    # (rule syncing) *does* work in this sandbox and is exercised by every
+    # run. Real firewall-enable behavior needs a real VPS kernel; see
+    # docs/COMPATIBILITY.md.
+    local firewall_ok="no"
+    docker exec "$container" bash -c "ufw status 2>/dev/null | grep -q 'Status: active'" && firewall_ok="yes"
+    if [[ "$firewall_ok" == "no" ]]; then
+        notes="${notes}firewall enable not verifiable in this Docker sandbox (ip6tables kernel module unavailable) -- needs real-VPS verification; "
+    fi
+
+    echo "$version|$installer_ok|$sshd_ok|$nginx_ok|$ws_ok|$manager_ok|$firewall_ok|see /tmp/install-$version.log|$notes" >> "$RESULTS_FILE"
 
     docker logs "$container" > "/tmp/container-$version.log" 2>&1 || true
     docker rm -f "$container" >/dev/null 2>&1 || true
@@ -96,10 +110,13 @@ for v in "${VERSIONS[@]}"; do
 done
 
 echo
-echo "| OS | Installer | sshd | nginx | ws endpoint | manager | Notes |"
-echo "|----|-----------|------|-------|-------------|---------|-------|"
-while IFS='|' read -r version installer sshd nginx ws manager logref notes; do
-    echo "| Ubuntu $version | $installer | $sshd | $nginx | $ws | $manager | ${notes:-$logref} |"
+echo "| OS | Installer | sshd | nginx | ws endpoint | manager | firewall enable* | Notes |"
+echo "|----|-----------|------|-------|-------------|---------|-------------------|-------|"
+while IFS='|' read -r version installer sshd nginx ws manager firewall logref notes; do
+    echo "| Ubuntu $version | $installer | $sshd | $nginx | $ws | $manager | $firewall | ${notes:-$logref} |"
 done < "$RESULTS_FILE"
+echo
+echo "* firewall enable: see docs/COMPATIBILITY.md -- a Docker-sandbox-only"
+echo "  ip6tables limitation, not a code defect; needs real-VPS verification."
 
 rm -f "$RESULTS_FILE"

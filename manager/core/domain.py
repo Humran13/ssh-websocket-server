@@ -108,7 +108,10 @@ def issue_certificate(email: str | None, actor: str) -> dict:
     cfg = config_mod.load()
     if not cfg["domain"]:
         raise DomainError("configure a domain before requesting a certificate")
-    result = privileged.call("certbot_issue", {"domain": cfg["domain"], "email": email})
+    # Matches priv_helper.py's own 180s internal certbot timeout -- the
+    # default 40s here would otherwise kill the sudo-wrapped process (and
+    # therefore certbot) well before that inner timeout ever applies.
+    result = privileged.call("certbot_issue", {"domain": cfg["domain"], "email": email}, timeout=200)
     from . import db
     db.log_action(actor, "certbot_issue", cfg["domain"], result.get("output"),
                   success=result.get("ok", False))
