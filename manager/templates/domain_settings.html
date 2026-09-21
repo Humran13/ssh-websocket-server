@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Domain / SSL - SSH WebSocket Manager{% endblock %}
+{% block content %}
+<h1>Domain / SSL</h1>
+
+<div class="card">
+  <h3>Current domain</h3>
+  <p class="mono">{{ cfg.domain or "(none -- IP mode)" }}</p>
+  {% if dns %}
+  <table>
+    <tr><td>Resolves</td><td>{{ "yes" if dns.resolves else "no" }}</td></tr>
+    <tr><td>Addresses</td><td class="mono">{{ dns.addresses | join(", ") or "-" }}</td></tr>
+    <tr><td>Matches this server's detected IP</td><td>{{ "yes" if dns.matches_server else "no / unknown" }}</td></tr>
+  </table>
+  <p class="muted">A mismatch is only informational -- CDNs, load balancers, and multi-homed servers are common and do not block certificate issuance.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h3>Set / change domain</h3>
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="form" value="set_domain">
+    <label>Domain</label>
+    <input type="text" name="domain" placeholder="vpn.example.com" required>
+    <button type="submit" class="primary">Save domain &amp; reconfigure Nginx</button>
+  </form>
+  {% if cfg.domain %}
+  <form method="post" style="margin-top:14px" onsubmit="return confirm('Remove domain and switch back to IP/WS mode? The certificate itself will not be deleted.');">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="form" value="remove_domain">
+    <button type="submit" class="danger">Remove domain (switch to IP mode)</button>
+  </form>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h3>Certificate</h3>
+  {% if cert %}
+    <table>
+      <tr><td>Provider</td><td>{{ cert.provider }}</td></tr>
+      <tr><td>Path</td><td class="mono">{{ cert.cert_path }}</td></tr>
+      <tr><td>Expires</td><td>{{ cert.expires or "unknown" }}</td></tr>
+    </table>
+    <form method="post" style="display:inline">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="form" value="renew_cert">
+      <button type="submit">Force renewal check</button>
+    </form>
+  {% else %}
+    <p class="muted">No certificate configured yet.</p>
+  {% endif %}
+  {% if cfg.domain %}
+  <form method="post" style="margin-top:14px">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="form" value="issue_cert">
+    <label>Contact email (optional, used for renewal reminders)</label>
+    <input type="email" name="email">
+    <button type="submit" class="primary">Request Let's Encrypt certificate</button>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}

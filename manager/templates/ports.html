@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Ports - SSH WebSocket Manager{% endblock %}
+{% block content %}
+<h1>Port status</h1>
+<div class="card">
+<table>
+  <thead><tr><th>Purpose</th><th>Port</th><th>Free on this host</th></tr></thead>
+  <tbody>
+    <tr><td>SSH</td><td class="mono">{{ cfg.ssh_port }}</td><td>{{ "n/a (in use by sshd)" if not port_status[cfg.ssh_port] else "free" }}</td></tr>
+    <tr><td>WebSocket</td><td class="mono">{{ cfg.ws_port }}</td><td>{{ "n/a (in use)" if not port_status[cfg.ws_port] else "free" }}</td></tr>
+    <tr><td>Secure WebSocket</td><td class="mono">{{ cfg.wss_port }}</td><td>{{ "n/a (in use)" if not port_status[cfg.wss_port] else "free" }}</td></tr>
+    <tr><td>Bridge (internal)</td><td class="mono">{{ cfg.bridge_port }}</td><td>{{ "n/a (in use)" if not port_status[cfg.bridge_port] else "free" }}</td></tr>
+    <tr><td>Manager panel</td><td class="mono">{{ cfg.manager_port }}</td><td>{{ "n/a (in use)" if not port_status[cfg.manager_port] else "free" }}</td></tr>
+  </tbody>
+</table>
+<p class="muted">Ports actively used by this install correctly show as "in use" -- change them from WebSocket Settings.</p>
+</div>
+{% endblock %}

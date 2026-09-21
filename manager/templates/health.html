@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Health - SSH WebSocket Manager{% endblock %}
+{% block content %}
+<h1>Health checks</h1>
+<div class="card">
+<table>
+  <thead><tr><th>Check</th><th>Result</th><th>Detail</th></tr></thead>
+  <tbody>
+    {% for name, r in results.items() %}
+    <tr>
+      <td data-label="Check" class="mono">{{ name }}</td>
+      <td data-label="Result"><span class="badge {{ 'badge-ok' if r.ok else 'badge-err' }}">{{ "OK" if r.ok else "FAIL" }}</span></td>
+      <td data-label="Detail" class="mono">{{ r.detail or "" }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

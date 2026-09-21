@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Login - SSH WebSocket Manager{% endblock %}
+{% block content %}
+<div class="login-wrap card">
+  <h2>SSH WebSocket Manager</h2>
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>Username</label>
+    <input type="text" name="username" required autofocus>
+    <label>Password</label>
+    <input type="password" name="password" required>
+    <button type="submit" class="primary">Log in</button>
+  </form>
+</div>
+{% endblock %}

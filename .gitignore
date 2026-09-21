@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+.devvenv/
+*.egg-info/
+
+# Local runtime artifacts (never commit real secrets/state)
+*.db
+*.sqlite3
+*.log
+instance/
+.env
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Claude Code runtime state (not project content)
+.claude/
+
+# Test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+tests/tmp/
+tests/**/__pycache__/
+
+# Backups produced by the tool at runtime
+backups/*.tar.gz*
+!backups/.gitkeep

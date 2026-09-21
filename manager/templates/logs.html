@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Logs - SSH WebSocket Manager{% endblock %}
+{% block content %}
+<h1>Logs</h1>
+<div class="card">
+  <div style="margin-bottom:10px">
+    {% for s in sources %}
+      <a class="btn{{ ' primary' if s == source else '' }}" href="{{ url_for('ops.logs_view', source=s) }}">{{ s }}</a>
+    {% endfor %}
+  </div>
+  <pre class="log">{% for line in lines %}{{ line }}
+{% endfor %}</pre>
+  <p class="muted">Passwords, secrets, tokens, session IDs and private key material are redacted before display.</p>
+</div>
+{% endblock %}

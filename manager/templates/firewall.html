@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Firewall - SSH WebSocket Manager{% endblock %}
+{% block content %}
+<h1>Firewall (UFW)</h1>
+<div class="card">
+  <span class="badge {{ 'badge-ok' if status.active else 'badge-warn' }}">{{ "active" if status.active else "inactive" }}</span>
+  <pre class="log">{{ status.output }}</pre>
+  <form method="post" style="display:inline">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="sync">
+    <button type="submit">Sync rules with current configuration</button>
+  </form>
+  {% if not status.active %}
+  <form method="post" style="display:inline" onsubmit="return confirm('This allows the current SSH/WS/WSS/manager ports first, then enables UFW. Continue?');">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="enable">
+    <button type="submit" class="primary">Enable firewall</button>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}

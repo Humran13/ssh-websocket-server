@@ -1,0 +1,8 @@
+# Installed to /etc/sudoers.d/ssh-websocket-server (mode 0440) by install.sh.
+#
+# Grants the unprivileged manager service account exactly one thing: running
+# the project's own privileged helper as root, with no arguments (the helper
+# reads its action + arguments as JSON from stdin, so no argv wildcard is
+# needed here). See scripts/priv_helper.py for what the helper will and will
+# not do.
+sshws ALL=(root) NOPASSWD: SSHWS_VENV_PYTHON SSHWS_INSTALL_ROOT/scripts/priv_helper.py

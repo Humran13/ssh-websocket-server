@@ -1,0 +1,28 @@
+[Unit]
+Description=SSH WebSocket Manager - WebSocket to SSH bridge (websockify)
+After=network.target ssh.service
+Wants=ssh.service
+Documentation=https://github.com/Humran13/ssh-websocket-server
+
+[Service]
+Type=simple
+User=sshws
+Group=sshws
+# Bind/target/port are substituted by install.sh from /etc/ssh-websocket-server/config.json.
+ExecStart=SSHWS_VENV_PYTHON -m websockify --heartbeat=30 SSHWS_BRIDGE_BIND:SSHWS_BRIDGE_PORT 127.0.0.1:SSHWS_SSH_PORT
+Restart=on-failure
+RestartSec=2
+WorkingDirectory=SSHWS_INSTALL_ROOT
+
+# Hardening -- the bridge only ever needs to open a listening TCP socket
+# and connect out to localhost:sshd, nothing else.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadOnlyPaths=SSHWS_INSTALL_ROOT
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+[Install]
+WantedBy=multi-user.target

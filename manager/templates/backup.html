@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Backup - SSH WebSocket Manager{% endblock %}
+{% block content %}
+<h1>Backup</h1>
+<div class="card">
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label><input type="checkbox" name="include_ssl"> Include SSL private key (creates a more sensitive archive -- protect it accordingly)</label>
+    <button type="submit" class="primary">Create backup now</button>
+  </form>
+</div>
+
+<div class="card">
+  <h3>Existing backups</h3>
+  <table>
+    <thead><tr><th>File</th><th></th></tr></thead>
+    <tbody>
+      {% for b in backups %}
+      <tr>
+        <td data-label="File" class="mono">{{ b.name }}</td>
+        <td data-label="Actions">
+          <a class="btn" href="{{ url_for('ops.backup_download', name=b.name) }}">Download</a>
+          <form method="post" action="{{ url_for('ops.backup_restore', name=b.name) }}" style="display:inline"
+                onsubmit="return confirm('Restore from {{ b.name }}? A safety backup of the current state will be taken first.');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="danger">Restore</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="2" class="muted">No backups yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

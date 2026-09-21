@@ -1,0 +1,18 @@
+[tool.ruff]
+line-length = 110
+target-version = "py38"
+
+[tool.ruff.lint]
+select = ["E", "F", "B", "S"]
+ignore = [
+    "S101",  # assert is fine in tests and CLI guard clauses
+    "S603",  # subprocess calls: every call site uses argument arrays, never shell=True
+    "S607",  # partial executable paths (e.g. "systemctl"): PATH is trusted root context here
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S105", "S106"]  # test fixtures use literal dummy passwords
+"scripts/priv_helper.py" = ["S404"]  # subprocess use is the entire point of this file
+
+[tool.pytest.ini_options]
+testpaths = ["tests/unit"]

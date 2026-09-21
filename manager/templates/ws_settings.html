@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}WebSocket Settings - SSH WebSocket Manager{% endblock %}
+{% block content %}
+<h1>WebSocket settings</h1>
+
+<div class="card">
+  <h3>Enable / disable</h3>
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="form" value="enabled">
+    <label><input type="checkbox" name="ws_enabled" {{ 'checked' if cfg.ws_enabled }}> WS (plain, ws://)</label>
+    <label><input type="checkbox" name="wss_enabled" {{ 'checked' if cfg.wss_enabled }} {{ 'disabled' if not cfg.ssl_cert_path }}>
+      WSS (secure, wss://){% if not cfg.ssl_cert_path %} -- requires a certificate, see Domain/SSL{% endif %}</label>
+    <button type="submit" class="primary">Save</button>
+  </form>
+</div>
+
+<div class="card">
+  <h3>Paths</h3>
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="form" value="paths">
+    <label>One path per line (default: /ssh)</label>
+    <textarea name="ws_paths">{{ cfg.ws_paths | join("\n") }}</textarea>
+    <button type="submit" class="primary">Save paths</button>
+  </form>
+</div>
+
+<div class="card">
+  <h3>Ports</h3>
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="form" value="ports">
+    <label>WS port</label>
+    <input type="number" name="ws_port" value="{{ cfg.ws_port }}">
+    <label>WSS port</label>
+    <input type="number" name="wss_port" value="{{ cfg.wss_port }}">
+    <label>Internal bridge port (localhost only)</label>
+    <input type="number" name="bridge_port" value="{{ cfg.bridge_port }}">
+    <button type="submit" class="primary">Save ports</button>
+  </form>
+</div>
+{% endblock %}

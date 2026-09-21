@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Active Connections - SSH WebSocket Manager{% endblock %}
+{% block content %}
+<h1>Active connections</h1>
+<p class="muted">Only sessions belonging to managed users are shown. Direct SSH and WebSocket-tunneled sessions look identical here -- both terminate at the same sshd process.</p>
+<div class="card">
+<table>
+  <thead><tr><th>Username</th><th>TTY</th><th>Source</th><th>PID</th><th></th></tr></thead>
+  <tbody>
+    {% for s in sessions %}
+    <tr>
+      <td data-label="Username" class="mono">{{ s.username }}</td>
+      <td data-label="TTY" class="mono">{{ s.tty }}</td>
+      <td data-label="Source" class="mono">{{ s.source or "-" }}</td>
+      <td data-label="PID" class="mono">{{ s.pid }}</td>
+      <td data-label="Action">
+        <form method="post" action="{{ url_for('users.disconnect', username=s.username, pid=s.pid) }}"
+              onsubmit="return confirm('Disconnect this session?');">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="danger">Disconnect</button>
+        </form>
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="5" class="muted">No active sessions for managed users.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - SSH WebSocket Manager{% endblock %}
+{% block content %}
+<h1>Dashboard</h1>
+
+<div class="grid">
+  <div class="card">
+    <div class="stat-label">Hostname</div>
+    <div class="stat-value mono">{{ hostname }}</div>
+  </div>
+  <div class="card">
+    <div class="stat-label">Public IP</div>
+    <div class="stat-value mono">{{ public_ip or "unknown" }}</div>
+  </div>
+  <div class="card">
+    <div class="stat-label">OS</div>
+    <div class="stat-value">{{ os_name }}</div>
+    <div class="muted">kernel {{ kernel }}</div>
+  </div>
+  <div class="card">
+    <div class="stat-label">Uptime</div>
+    <div class="stat-value">
+      {% if uptime_seconds %}{{ (uptime_seconds // 3600) | int }}h {{ ((uptime_seconds % 3600) // 60) | int }}m{% else %}unknown{% endif %}
+    </div>
+  </div>
+  <div class="card">
+    <div class="stat-label">CPU</div>
+    <div class="stat-value">{{ cpu_percent if cpu_percent is not none else "n/a" }}%</div>
+  </div>
+  <div class="card">
+    <div class="stat-label">Memory</div>
+    {% if memory %}
+    <div class="stat-value">{{ (memory.used / 1048576) | round(0, 'floor') | int }} / {{ (memory.total / 1048576) | round(0, 'floor') | int }} MB</div>
+    {% else %}<div class="stat-value">n/a</div>{% endif %}
+  </div>
+  <div class="card">
+    <div class="stat-label">Disk (/)</div>
+    <div class="stat-value">{{ (disk.used / 1073741824) | round(1) }} / {{ (disk.total / 1073741824) | round(1) }} GB</div>
+  </div>
+  <div class="card">
+    <div class="stat-label">Installed version</div>
+    <div class="stat-value mono">v{{ installed_version }}</div>
+  </div>
+</div>
+
+<h2>Services</h2>
+<div class="grid">
+  <div class="card">
+    <div class="stat-label">OpenSSH</div>
+    <span class="badge {{ 'badge-ok' if sshd_status == 'active' else 'badge-err' }}">{{ sshd_status }}</span>
+  </div>
+  <div class="card">
+    <div class="stat-label">WebSocket bridge</div>
+    <span class="badge {{ 'badge-ok' if bridge_status == 'active' else 'badge-err' }}">{{ bridge_status }}</span>
+  </div>
+  <div class="card">
+    <div class="stat-label">Nginx</div>
+    <span class="badge {{ 'badge-ok' if nginx_status == 'active' else 'badge-err' }}">{{ nginx_status }}</span>
+  </div>
+  <div class="card">
+    <div class="stat-label">Manager</div>
+    <span class="badge {{ 'badge-ok' if manager_status == 'active' else 'badge-err' }}">{{ manager_status }}</span>
+  </div>
+  <div class="card">
+    <div class="stat-label">Firewall</div>
+    <span class="badge {{ 'badge-ok' if firewall_active == 'active' else 'badge-warn' }}">{{ firewall_active }}</span>
+  </div>
+  <div class="card">
+    <div class="stat-label">SSL certificate</div>
+    {% if cert %}
+      <span class="badge badge-ok">{{ cert.provider }}</span>
+      <div class="muted">expires {{ cert.expires or "unknown" }}</div>
+    {% else %}
+      <span class="badge badge-muted">not configured</span>
+    {% endif %}
+  </div>
+</div>
+
+<h2>Configuration</h2>
+<div class="card">
+  <table>
+    <tr><td>Domain</td><td class="mono">{{ cfg.domain or "(none -- IP mode)" }}</td></tr>
+    <tr><td>SSH port</td><td class="mono">{{ cfg.ssh_port }}</td></tr>
+    <tr><td>WebSocket (ws://)</td><td class="mono">{{ "enabled, port " ~ cfg.ws_port if cfg.ws_enabled else "disabled" }}</td></tr>
+    <tr><td>Secure WebSocket (wss://)</td><td class="mono">{{ "enabled, port " ~ cfg.wss_port if cfg.wss_enabled else "disabled" }}</td></tr>
+    <tr><td>WebSocket path(s)</td><td class="mono">{{ cfg.ws_paths | join(", ") }}</td></tr>
+    <tr><td>Managed SSH users</td><td class="mono">{{ managed_user_count }}</td></tr>
+    <tr><td>Active sessions (managed users)</td><td class="mono">{{ active_sessions | length }}</td></tr>
+  </table>
+</div>
+{% endblock %}

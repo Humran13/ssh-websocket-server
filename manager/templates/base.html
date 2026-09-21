@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}SSH WebSocket Manager{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+{% if session.admin %}
+<header class="topbar">
+  <div class="brand">SSH WebSocket Manager</div>
+  <nav class="topnav">
+    <a href="{{ url_for('dashboard.index') }}">Dashboard</a>
+    <a href="{{ url_for('users.index') }}">Users</a>
+    <a href="{{ url_for('users.sessions') }}">Sessions</a>
+    <a href="{{ url_for('settings.websocket') }}">WebSocket</a>
+    <a href="{{ url_for('settings.domain_settings') }}">Domain/SSL</a>
+    <a href="{{ url_for('settings.ports') }}">Ports</a>
+    <a href="{{ url_for('settings.firewall_settings') }}">Firewall</a>
+    <a href="{{ url_for('ops.logs_view') }}">Logs</a>
+    <a href="{{ url_for('ops.backup_view') }}">Backup</a>
+    <a href="{{ url_for('ops.health_view') }}">Health</a>
+    <a href="{{ url_for('auth.logout') }}">Logout ({{ session.admin }})</a>
+  </nav>
+</header>
+{% endif %}
+<main class="content">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flashes">
+        {% for category, message in messages %}
+          <div class="flash flash-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>

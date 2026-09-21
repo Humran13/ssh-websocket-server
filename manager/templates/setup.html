@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Initial Setup - SSH WebSocket Manager{% endblock %}
+{% block content %}
+<div class="login-wrap card">
+  <h2>Create the admin account</h2>
+  <p class="muted">No admin account exists yet. Create one now to secure this panel.</p>
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>Username</label>
+    <input type="text" name="username" required autofocus minlength="3">
+    <label>Password (12+ characters)</label>
+    <input type="password" name="password" required minlength="12">
+    <label>Confirm password</label>
+    <input type="password" name="confirm" required minlength="12">
+    <button type="submit" class="primary">Create admin account</button>
+  </form>
+</div>
+{% endblock %}

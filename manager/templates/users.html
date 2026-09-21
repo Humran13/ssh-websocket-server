@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}SSH Users - SSH WebSocket Manager{% endblock %}
+{% block content %}
+<h1>SSH Users</h1>
+<a class="btn primary" href="{{ url_for('users.create') }}">+ Add SSH user</a>
+
+<div class="card" style="margin-top:16px">
+<table>
+  <thead>
+    <tr><th>Username</th><th>Status</th><th>Expires</th><th>Max sessions</th><th>Actions</th></tr>
+  </thead>
+  <tbody>
+    {% for u in users %}
+    <tr>
+      <td data-label="Username" class="mono">{{ u.username }}</td>
+      <td data-label="Status">
+        {% if not u.enabled %}<span class="badge badge-err">disabled</span>
+        {% elif u.expired %}<span class="badge badge-warn">expired</span>
+        {% else %}<span class="badge badge-ok">active</span>{% endif %}
+      </td>
+      <td data-label="Expires">{{ u.expires_at | fmt_ts if u.expires_at else "never" }}</td>
+      <td data-label="Max sessions">{{ u.max_sessions or "unlimited" }}</td>
+      <td data-label="Actions">
+        <form method="post" action="{{ url_for('users.disable', username=u.username) }}" style="display:inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          {% if u.enabled %}<button type="submit">Disable</button>{% endif %}
+        </form>
+        <form method="post" action="{{ url_for('users.enable', username=u.username) }}" style="display:inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          {% if not u.enabled %}<button type="submit">Enable</button>{% endif %}
+        </form>
+        <form method="post" action="{{ url_for('users.set_password', username=u.username) }}" style="display:inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit">Reset password</button>
+        </form>
+        <form method="post" action="{{ url_for('users.expiry', username=u.username) }}" style="display:inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="action" value="extend">
+          <input type="number" name="days" value="30" style="width:70px;display:inline-block">
+          <button type="submit">Extend (days)</button>
+        </form>
+        <form method="post" action="{{ url_for('users.delete', username=u.username) }}" style="display:inline"
+              onsubmit="return confirm('Type-confirm required. Delete {{ u.username }}?');">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="confirm_username" value="{{ u.username }}">
+          <button type="submit" class="danger">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="5" class="muted">No managed users yet.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

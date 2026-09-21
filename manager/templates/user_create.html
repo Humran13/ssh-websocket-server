@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Add SSH User - SSH WebSocket Manager{% endblock %}
+{% block content %}
+<h1>Add SSH user</h1>
+<div class="card" style="max-width:480px">
+<form method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label>Username</label>
+  <input type="text" name="username" required pattern="[a-z][a-z0-9_-]{2,31}" title="lowercase letters/digits/_/-, starting with a letter">
+  <label>Password (leave blank to auto-generate)</label>
+  <input type="text" name="password" minlength="8">
+  <label>Expiry (days from now, blank = never)</label>
+  <input type="number" name="expiry_days" min="1">
+  <label>Max concurrent sessions (blank = unlimited)</label>
+  <input type="number" name="max_sessions" min="1">
+  <label>Note</label>
+  <input type="text" name="note">
+  <button type="submit" class="primary">Create user</button>
+</form>
+</div>
+{% endblock %}

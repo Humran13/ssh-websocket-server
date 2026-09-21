@@ -1,0 +1,28 @@
+[Unit]
+Description=SSH WebSocket Manager - Flask web panel (gunicorn)
+After=network.target
+Documentation=https://github.com/Humran13/ssh-websocket-server
+
+[Service]
+Type=simple
+User=sshws
+Group=sshws
+WorkingDirectory=SSHWS_INSTALL_ROOT/manager
+Environment=SSHWS_ETC=/etc/ssh-websocket-server
+Environment=SSHWS_VAR=/var/lib/ssh-websocket-server
+Environment=SSHWS_LOG=/var/log/ssh-websocket-server
+Environment=SSHWS_ROOT=SSHWS_INSTALL_ROOT
+ExecStart=SSHWS_VENV_PYTHON -m gunicorn -w 2 --timeout 60 -b SSHWS_MANAGER_BIND:SSHWS_MANAGER_PORT wsgi:app
+Restart=on-failure
+RestartSec=2
+
+# The manager process itself never runs as root. All privileged work goes
+# through `sudo priv_helper.py`, which is the one sudoers exception.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/etc/ssh-websocket-server /var/lib/ssh-websocket-server /var/log/ssh-websocket-server
+
+[Install]
+WantedBy=multi-user.target
