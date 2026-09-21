@@ -365,11 +365,15 @@ systemctl enable --now fail2ban || log_warn "fail2ban did not start; check 'syst
 log_ok "Services started."
 
 log_step "Configuring Fail2ban for SSH"
-"$SCRIPT_DIR/scripts/configure_fail2ban.sh" || log_warn "Fail2ban configuration step reported a problem."
+# Invoked via `bash` explicitly rather than relying on the executable bit:
+# git only preserves that bit when it was set at commit time, and a
+# clone (as opposed to a same-filesystem copy) is the one path that
+# actually enforces it -- this must not depend on it.
+bash "$SCRIPT_DIR/scripts/configure_fail2ban.sh" || log_warn "Fail2ban configuration step reported a problem."
 
-"$SCRIPT_DIR/scripts/install_cli.sh" "$SSHWS_ROOT" "$VENV_PY"
+bash "$SCRIPT_DIR/scripts/install_cli.sh" "$SSHWS_ROOT" "$VENV_PY"
 
 log_step "Installation summary"
-"$SCRIPT_DIR/scripts/print_summary.sh" "$SSHWS_ROOT" "$VENV_PY"
+bash "$SCRIPT_DIR/scripts/print_summary.sh" "$SSHWS_ROOT" "$VENV_PY"
 
 log_ok "Install complete. Run 'ssh-ws' any time to manage this install."

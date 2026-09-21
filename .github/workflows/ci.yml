@@ -14,6 +14,20 @@ jobs:
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
           shellcheck install.sh update.sh uninstall.sh lib/*.sh scripts/*.sh
+      - name: Verify executable bit on scripts meant to be run directly
+        run: |
+          # Regression check: these files were once authored on a
+          # filesystem with no exec-bit concept and committed as mode 644,
+          # which silently broke a real `bash <(curl ...)` / `git clone`
+          # install (install.sh itself now invokes the affected ones via
+          # an explicit `bash` prefix specifically so that class of bug
+          # can't break a live install again -- this check guards the
+          # remaining ones meant for direct/manual use, e.g. `ssh-ws`,
+          # `./update.sh`, `./uninstall.sh`).
+          for f in install.sh update.sh uninstall.sh lib/*.sh scripts/*.sh \
+                   scripts/priv_helper.py cli/ssh_ws_cli.py tests/integration/run-matrix.sh; do
+            test -x "$f" || { echo "::error file=$f::missing executable bit"; exit 1; }
+          done
 
   python:
     runs-on: ubuntu-latest
